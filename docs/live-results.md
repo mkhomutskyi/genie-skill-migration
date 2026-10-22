@@ -11,7 +11,7 @@ This page summarizes the live tests of the five custom skills. The raw outputs s
 - Each case was graded against its `must` list, expected values and `must_not_contain` list in `evals/held_out.json`. A failure was fixed in the skill, never by changing the case.
 - Word counts include tokens that contain a letter or a digit and exclude the diagram.
 
-## Final results
+## Initial synthetic-input results
 
 Each skill was tested at the hash shown, which is the first 12 characters of the SHA-256 of `skills/<name>/SKILL.md` at the time of the run. cost-investigator and workload-radar changed after these runs (see [Live system tables](#live-system-tables)), and their four cases were rerun on the changed files (see [Rerun after the scope fix](#rerun-after-the-scope-fix)). workload-radar and business-pulse changed again after the live runs with SQL (see [Live runs with SQL executed](#live-runs-with-sql-executed)), and their live prompts were rerun on the changed files (see [Rerun with the live-run rules](#rerun-with-the-live-run-rules)).
 
@@ -78,7 +78,7 @@ The run also showed three gaps, now fixed in all three variants of both skills:
 
 | Gap | Fix |
 |-----|-----|
-| The billing and jobs system tables included other workspaces in the account, so an unfiltered answer covered the whole account. | Both queries filter to one workspace by default. The filter is removed only when the user asks for the whole account. |
+| The billing and jobs tables included other workspaces. Billing usage is global across the account; jobs data covers account workspaces in the same cloud region. | Both queries filter to one workspace by default. Request broader scope explicitly and check whether each source is regional or global. |
 | workload-radar returned one row per job per window, too many to summarize in chat. | It returns at most 20 jobs per window. Window totals come from the unranked runs. |
 | No retry-triggered runs occurred in the window, so the retry count was 0. | A zero count is reported as "no explicit retries observed", not as healthy retries. |
 
@@ -86,7 +86,7 @@ I then ran the fixed queries the same way. The single-workspace cost total match
 
 The fix changed these files after the first Genie runs:
 
-| Skill | Hash in the first runs | Current hash |
+| Skill | Hash in the first runs | Hash after this revision |
 |-------|------------------------|--------------|
 | cost-investigator | `480b1570ff47` | `8524543d4ce3` |
 | workload-radar | `00ab1759915b` | `4377275cd433` |
@@ -139,7 +139,7 @@ The raw outputs and the system-table figures stay private because they show acco
 
 These runs led to two rule changes, made after the runs and tested in [Rerun with the live-run rules](#rerun-with-the-live-run-rules):
 
-| Skill | Hash in the live runs | Current hash |
+| Skill | Hash in the live runs | Hash after this revision |
 |-------|-----------------------|--------------|
 | workload-radar | `4377275cd433` | `12c8464cf906` |
 | business-pulse | `305cb5999b9f` | `8ccc336eb2c7` |
@@ -153,16 +153,17 @@ Later on 2026-10-22 I uploaded the current workload-radar (`12c8464cf906`) and b
 
 | Skill | Genie One, 3 runs | Genie Code, 1 run |
 |-------|-------------------|-------------------|
-| workload-radar | all numbers match; two runs with one error each | all numbers match, no errors |
-| business-pulse | all numbers match, no errors | all numbers match; one missing heading |
+| workload-radar | all headline numbers match | all headline numbers match |
+| business-pulse | all headline numbers match | all headline numbers match |
 
+- This table reports headline-number agreement, not an error-free grade. The errors and scope statements below remain part of the results.
 - The two new rules held in all eight runs. Every workload answer compared the workspace's newest job record with the whole table and reported no completed runs after a timestamp, instead of calling the data late. Every business-pulse answer said the losses were larger, showed both totals, and declined to call the change normal without a longer baseline.
 - Genie One, workload-radar: one run said most prior-week job runs belonged to one series of evaluation jobs, but less than a third did.
 - Genie One, workload-radar: one run called the current week's only job "unnamed". The job has a name, in a table that run did not query.
 - Genie Code, business-pulse: it renamed the required headings and again left out `Top dimensional contributors`. It listed the contributors under its summary.
 - One more Genie One workload run stalled after its queries finished. It showed no answer after ten minutes, also after a page reload, so I cancelled it, removed the chat and started again. It is not graded.
 - Genie One used the skill's top-20 job query in two of the three workload runs. The third wrote its own per-job query, filtered to the workspace and capped at 40 rows.
-- Query history again shows only finished `SELECT` statements on the existing warehouse. The only system-table reads without a workspace filter were the new freshness checks, and each returned only the newest timestamp in the whole table. Two answers still said that every query was filtered to the workspace.
+- Query history again shows only finished `SELECT` statements on the existing warehouse. The only system-table reads without a workspace filter were the new freshness checks, and each returned only the newest timestamp in the whole table. Two answers still said that every query was filtered to the workspace. Those statements were incorrect. I have not established their overlap with the three answers listed above, so I do not use a single error-free-answer count for this round.
 - Genie Code saved no memory this time, and its memory folder was empty afterwards.
 - I checked the other facts the answers cited, such as data read, cache hits, warehouse events by type, costs on idle days and failing jobs, against direct queries. Apart from the errors above, they matched.
 
@@ -190,7 +191,10 @@ When you test a skill, read the recall citations before you judge the answer. A 
 
 ## Limits of this evidence
 
-- One workspace, one cloud and one run per final case. Model output varies between runs, so a pass here does not guarantee every future answer passes. The solution-planner held-out cases came in under the 900-word limit by 45 to 108 words.
+- The jobs tables cover workspaces in the same cloud region. Billing usage is global across the account. A table-wide latest timestamp is a freshness signal, not proof that a particular workspace has complete records.
+- The workload query template ranks at most 20 jobs per window. Genie can generate different SQL: one rerun used its own query capped at 40 rows, which does not establish a 20-per-window cap.
+
+- One AWS workspace. Each synthetic case ran once per product at each tested revision; each live prompt ran three times in Genie One and once in Genie Code per skill per round. Model output varies between runs, so a pass here does not guarantee every future answer passes. The solution-planner held-out cases came in under the 900-word limit by 45 to 108 words.
 - I graded the runs myself against the written `must` lists. There was no second grader.
 - Genie ran SQL in two rounds, with one prompt per skill: three skills, then the two that changed, each with three runs in Genie One and one in Genie Code. business-pulse ran on public sample data, not on a real business table. technical-answer and solution-planner run no SQL.
 - The Cursor and Claude Code versions in `other-runtimes/` were not tested.

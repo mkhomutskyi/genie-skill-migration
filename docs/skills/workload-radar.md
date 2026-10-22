@@ -65,7 +65,7 @@ Expected behavior: both windows with exact boundaries, read-only SQL labeled `no
 
 ## SQL checks
 
-The job query in `skills/workload-radar/SKILL.md` runs in `tests/test_sql_fixtures.py` on local Apache Spark against a small made-up timeline: a run split into hourly slices, a run repaired after a failure, a `ONETIME_RETRY` run, a run that crosses the window boundary, a run that never started, and runs outside both windows. This checks the query logic only. It was not run on Databricks system tables.
+The job query in `skills/workload-radar/SKILL.md` runs in `tests/test_sql_fixtures.py` on local Apache Spark against a small made-up timeline: a run split into hourly slices, a run repaired after a failure, a `ONETIME_RETRY` run, a run that crosses the window boundary, a run that never started, and runs outside both windows. These fixtures check query logic only. Separately, the job query ran directly against Databricks system tables, and Genie executed live read-only queries in two later rounds. See [Live results](../live-results.md).
 
 ## Changes in this revision
 
@@ -81,7 +81,9 @@ The job query in `skills/workload-radar/SKILL.md` runs in `tests/test_sql_fixtur
 
 The 2026-10-14 "10 of 10 passed" run used prompts that asked for the sample whose answer is written in the skill. It shows the skill loaded and followed its sample, not that it computes correctly. The cases in `evals/held_out.json` replace it.
 
-Final live run, 2026-10-20 to 2026-10-22, on SKILL.md hash `00ab1759915b`: the held-out and missing-input cases met their checklists in Genie One (`/`) and Genie Code (`@`). Both held-out answers showed the repair-like heuristic as 0, although the supplied numbers cannot measure it, and the Genie Code answer said a 30% cost rise "outpaces" a 33% rise in runs. Neither error is on the checklist. The failures found on the way, and the fixes, are listed in [Live results](../live-results.md).
+Initial synthetic-input tests, 2026-10-20 to 2026-10-22, on historical SKILL.md hash `00ab1759915b`: the held-out and missing-input cases met their checklists in Genie One (`/`) and Genie Code (`@`). Both held-out answers showed the repair-like heuristic as 0, although the supplied numbers cannot measure it, and the Genie Code answer said a 30% cost rise "outpaces" a 33% rise in runs. Neither error is on the checklist. The failures found on the way, and the fixes, are listed in [Live results](../live-results.md).
+
+The current file has hash `12c8464cf906`. After live queries exposed a freshness mistake, its live prompt was rerun three times in Genie One and once in Genie Code. Headline numbers matched the answer key, and the new freshness rule held. Other errors remained: unsupported descriptions of job runs and a job name, and incorrect claims that every query was workspace-filtered. The freshness check reads the latest timestamp across the regional jobs table; it does not return other workspaces' job details or prove completeness for this workspace. The published query template caps the display at 20 jobs per window, but one Genie rerun generated a different query capped at 40 rows. See [Live results](../live-results.md) for the exact scope and limits.
 
 ## Sources
 

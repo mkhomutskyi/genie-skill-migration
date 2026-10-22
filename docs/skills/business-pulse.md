@@ -79,7 +79,9 @@ The raw-table query and the built-in sample in `skills/business-pulse/SKILL.md` 
 
 The 2026-10-14 "10 of 10 passed" run used prompts that asked for the sample whose answer is written in the skill. It shows the skill loaded and followed its sample, not that it computes correctly. The cases in `evals/held_out.json` replace it.
 
-Final live run, 2026-10-20 to 2026-10-22, on SKILL.md hash `305cb5999b9f`: the held-out and missing-input cases passed in Genie One (`/`) and Genie Code (`@`). The failures found on the way, and the fixes, are listed in [Live results](../live-results.md).
+Initial synthetic-input tests, 2026-10-20 to 2026-10-22, on historical SKILL.md hash `305cb5999b9f`: the held-out and missing-input cases passed in Genie One (`/`) and Genie Code (`@`). The failures found on the way, and the fixes, are listed in [Live results](../live-results.md).
+
+The current file has hash `8ccc336eb2c7`. Genie executed its live prompt on the public `samples.bakehouse.sales_transactions` table, then reran it after the baseline and gains-versus-losses rules changed: three runs in Genie One and one in Genie Code per round. Headline numbers matched the answer key, and both new rules held in the reruns. Genie Code still changed the required headings and omitted `Top dimensional contributors`, though it listed the contributors in its summary. This is not a test on real business tables. See [Live results](../live-results.md).
 
 ## Sources
 

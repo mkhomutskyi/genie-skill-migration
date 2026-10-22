@@ -71,7 +71,9 @@ Expected behavior: read-only SQL labeled `not executed`, a clear "live data was 
 
 The 2026-10-14 "10 of 10 passed" run used prompts that asked for the sample whose answer is written in the skill. It shows the skill loaded and followed its sample, not that it computes correctly. The cases in `evals/held_out.json` replace it.
 
-Final live run, 2026-10-20 to 2026-10-22, on SKILL.md hash `480b1570ff47`: the held-out and missing-input cases passed in Genie One (`/`) and Genie Code (`@`). The failures found on the way, and the fixes, are listed in [Live results](../live-results.md).
+Initial synthetic-input tests, 2026-10-20 to 2026-10-22, on historical SKILL.md hash `480b1570ff47`: the held-out and missing-input cases passed in Genie One (`/`) and Genie Code (`@`). The failures found on the way, and the fixes, are listed in [Live results](../live-results.md).
+
+The current file has hash `8524543d4ce3`. Its two synthetic cases were rerun in both products after the workspace-scope fix. The SQL also ran directly against live system tables, and Genie later executed it in three Genie One runs and one Genie Code run. Headline totals matched the independent answer key. A dry-run answer had described an unpriced SKU as having "no cost"; unpriced usage must remain unmatched, not zero cost. See [Live results](../live-results.md) for the separate rounds and limits.
 
 ## Sources
 

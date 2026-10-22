@@ -53,12 +53,16 @@ All five are read-only: they never change data, jobs, warehouses or permissions,
 
 ## Test status
 
-On 2026-10-20 to 2026-10-22, I ran the held-out case and the missing-input case for each custom skill in Genie One and Genie Code on the final files: 20 runs in one AWS workspace with synthetic prompts. All 20 met their test checklist, but two were not error-free. Both workload-radar held-out answers, in Genie One and in Genie Code, showed the repair-like heuristic as 0, although the supplied numbers cannot measure it. The Genie Code answer also said a 30% cost rise "outpaces" a 33% rise in runs, which is false. Genie ran no SQL in those runs. After a later fix to cost-investigator and workload-radar, I reran their eight runs on the changed files: all met their checklists, and one Genie One answer had an arithmetic error. I then let Genie run the SQL for cost-investigator, workload-radar and business-pulse, read-only, on an existing warehouse: three runs in Genie One and one in Genie Code per skill. All 12 matched an answer key I computed directly, on every headline number, and every system-table query filtered to the one workspace. Four answers had one or two errors, such as a "normal noise" claim without a baseline. Those errors led to two small rule changes. In eight reruns of the two changed skills, those errors did not recur, and three answers had other errors, such as a missing heading. The failures found along the way and the fixes are in [docs/live-results.md](docs/live-results.md).
+I tested the skills in one AWS workspace on 2026-10-20 to 2026-10-22. The first 20 synthetic-input runs met their checklists, but two workload-radar answers contained errors. After the workspace-scope fix, eight more dry runs met their checklists; an arithmetic error and other wording problems remained.
+
+I then let Genie execute read-only SQL for cost-investigator, workload-radar and business-pulse on an existing warehouse: three runs in Genie One and one in Genie Code per skill. All 12 answers matched the independent answer key on their headline totals. Four answers still had errors. I added rules for job-data freshness and unsupported claims that a change is normal. Both rules held in eight live reruns of workload-radar and business-pulse, but other errors remained. Workload and cost queries used a workspace filter; the new freshness checks read the latest timestamp across the jobs table. Some answers incorrectly described those freshness reads as workspace-filtered.
+
+These are checks of specific prompts, files and outputs, not a guarantee of future answers. The hashes, test rounds, errors and limits are in [docs/live-results.md](docs/live-results.md).
 
 Automated checks:
 
-- CI runs on Linux and on Windows with `core.autocrlf=true`. The six Spark SQL fixture tests are skipped there, because CI does not install Apache Spark. Windows also skips one test of executable file permissions, which Windows does not have.
-- Locally, with Java 21 and Apache Spark installed, all tests ran, including the six Spark tests.
+- CI runs on Linux and on Windows with `core.autocrlf=true`. The seven Spark SQL fixture tests are skipped there, because CI does not install Apache Spark. Windows also skips one test of executable file permissions, which Windows does not have.
+- Locally, with Java 21 and Apache Spark installed, all tests ran, including the seven Spark tests.
 
 Local checks:
 
@@ -71,7 +75,7 @@ uv run portable-skills scan .
 
 ## Limits
 
-- One workspace, one cloud, one final run per case. Model output varies between runs.
+- One AWS workspace. Synthetic cases ran once per product at each tested revision. Each live prompt ran three times in Genie One and once in Genie Code per skill per round. Model output varies between runs.
 - Genie One reads past conversations and can follow an older chat instead of the skill. Check its "Read past conversation" citations before you judge a result. See [Recall](docs/live-results.md#recall).
 - Genie ran SQL in two rounds in one workspace, with one prompt per skill: three skills, then the two that changed. business-pulse ran on public sample data, not a real business table. The SQL was also checked on local Apache Spark with made-up tables. See [docs/live-results.md](docs/live-results.md#live-runs-with-sql-executed).
 - The Cursor and Claude Code versions are untested.
