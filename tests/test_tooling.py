@@ -798,7 +798,14 @@ def test_migration_provenance_hashes_match(name: str) -> None:
 def published_skill_hashes() -> dict[str, str]:
     text = (REPOSITORY / "docs" / "live-results.md").read_text(encoding="utf-8")
     rows = re.findall(r"^\| ([a-z-]+) \| `([0-9a-f]{12})` \|", text, flags=re.M)
-    return {name: digest for name, digest in rows if name in CUSTOM_SKILLS}
+    tested = {name: digest for name, digest in rows if name in CUSTOM_SKILLS}
+    changed = re.findall(
+        r"^\| ([a-z-]+) \| `([0-9a-f]{12})` \| `([0-9a-f]{12})` \|$", text, flags=re.M
+    )
+    for name, tested_digest, current_digest in changed:
+        assert tested[name] == tested_digest
+        tested[name] = current_digest
+    return tested
 
 
 @pytest.mark.parametrize("name", CUSTOM_SKILLS)

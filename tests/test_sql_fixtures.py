@@ -83,19 +83,27 @@ TIMELINE_ROWS = [
     # before both windows: excluded
     (1, "job_b", "b4", "2026-10-01 01:00:00", "2026-10-01 01:10:00", "PERIODIC", "SUCCEEDED"),
     (1, "job_b", "b5", "2026-10-10 03:00:00", "2026-10-10 03:20:00", "PERIODIC", "FAILED"),
+    # another workspace in the same account: excluded by the workspace filter
+    (2, "job_z", "z1", "2026-10-15 01:00:00", "2026-10-15 01:10:00", "PERIODIC", "FAILED"),
 ]
 
 
-def test_workload_radar_job_query_on_sliced_and_repaired_runs(spark) -> None:
+def radar_sql(spark, rank_limit: str = "20") -> str:
     rows = [(*row[:3], ts(row[3]), ts(row[4]), *row[5:]) for row in TIMELINE_ROWS]
     spark.createDataFrame(rows, TIMELINE_COLUMNS).createOrReplaceTempView("job_run_timeline")
-    sql = substitute(
+    return substitute(
         sql_after("workload-radar", "## Read-only query shape"),
         {
             "system.lakeflow.job_run_timeline": "job_run_timeline",
             "current_date()": TODAY,
+            ":workspace_id": "1",
+            "job_rank <= 20": f"job_rank <= {rank_limit}",
         },
     )
+
+
+def test_workload_radar_job_query_on_sliced_and_repaired_runs(spark) -> None:
+    sql = radar_sql(spark)
 
     result = {
         (row.period, row.job_id): (
@@ -117,19 +125,30 @@ def test_workload_radar_job_query_on_sliced_and_repaired_runs(spark) -> None:
     }
 
 
+def test_workload_radar_keeps_the_top_jobs_per_window(spark) -> None:
+    rows = spark.sql(radar_sql(spark, rank_limit="1")).collect()
+
+    assert {(row.period, row.job_id, row.job_rank) for row in rows} == {
+        ("current_7d", "job_a", 1),
+        ("prior_7d", "job_b", 1),
+    }
+
+
 def test_cost_investigator_query_keeps_corrections_and_time_ranged_prices(spark) -> None:
     usage = [
-        ("2026-03-02", "2026-03-02 01:00:00", "aws", "SKU_P", 12.0, "ORIGINAL"),
-        ("2026-03-03", "2026-03-02 01:00:00", "aws", "SKU_P", -12.0, "RETRACTION"),
-        ("2026-03-03", "2026-03-02 01:00:00", "aws", "SKU_P", 9.0, "RESTATEMENT"),
-        ("2026-03-05", "2026-03-05 02:00:00", "aws", "SKU_Q", 4.0, "ORIGINAL"),
-        ("2026-03-06", "2026-03-06 02:00:00", "aws", "SKU_R", 2.0, "ORIGINAL"),
-        ("2026-04-01", "2026-04-01 02:00:00", "aws", "SKU_Q", 100.0, "ORIGINAL"),
+        ("1", "2026-03-02", "2026-03-02 01:00:00", "aws", "SKU_P", 12.0, "ORIGINAL"),
+        ("1", "2026-03-03", "2026-03-02 01:00:00", "aws", "SKU_P", -12.0, "RETRACTION"),
+        ("1", "2026-03-03", "2026-03-02 01:00:00", "aws", "SKU_P", 9.0, "RESTATEMENT"),
+        ("1", "2026-03-05", "2026-03-05 02:00:00", "aws", "SKU_Q", 4.0, "ORIGINAL"),
+        ("1", "2026-03-06", "2026-03-06 02:00:00", "aws", "SKU_R", 2.0, "ORIGINAL"),
+        ("1", "2026-04-01", "2026-04-01 02:00:00", "aws", "SKU_Q", 100.0, "ORIGINAL"),
+        # another workspace in the same account: excluded by the workspace filter
+        ("2", "2026-03-05", "2026-03-05 02:00:00", "aws", "SKU_Q", 50.0, "ORIGINAL"),
     ]
     spark.createDataFrame(
-        [(datetime.fromisoformat(d).date(), ts(t), *rest) for d, t, *rest in usage],
-        "usage_date DATE, usage_start_time TIMESTAMP, cloud STRING, sku_name STRING, "
-        "usage_quantity DOUBLE, record_type STRING",
+        [(ws, datetime.fromisoformat(d).date(), ts(t), *rest) for ws, d, t, *rest in usage],
+        "workspace_id STRING, usage_date DATE, usage_start_time TIMESTAMP, cloud STRING, "
+        "sku_name STRING, usage_quantity DOUBLE, record_type STRING",
     ).createOrReplaceTempView("usage")
 
     def price(sku, start, end, default, effective):
@@ -154,6 +173,7 @@ def test_cost_investigator_query_keeps_corrections_and_time_ranged_prices(spark)
             "system.billing.list_prices": "list_prices",
             ":start_date": "DATE'2026-03-01'",
             ":end_date": "DATE'2026-04-01'",
+            ":workspace_id": "'1'",
         },
     )
 

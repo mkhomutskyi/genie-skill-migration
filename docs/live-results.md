@@ -1,6 +1,6 @@
 # Live results
 
-This page summarizes the live tests of the five custom skills. The raw outputs stay private because they show a real workspace. Everything below uses synthetic inputs, and no SQL ran in the workspace.
+This page summarizes the live tests of the five custom skills. The raw outputs stay private because they show a real workspace. The Genie tests below use synthetic inputs, and no SQL ran during them. A separate read-only run of two skills' SQL against live system tables is described in [Live system tables](#live-system-tables).
 
 ## Setup
 
@@ -13,7 +13,7 @@ This page summarizes the live tests of the five custom skills. The raw outputs s
 
 ## Final results
 
-Each skill was tested at the hash shown, which is the first 12 characters of the SHA-256 of `skills/<name>/SKILL.md` in this repository.
+Each skill was tested at the hash shown, which is the first 12 characters of the SHA-256 of `skills/<name>/SKILL.md` at the time of the run. cost-investigator and workload-radar changed after these runs (see [Live system tables](#live-system-tables)), and their four cases were rerun on the changed files (see [Rerun after the scope fix](#rerun-after-the-scope-fix)).
 
 | Skill | Hash | Case | Genie One | Genie Code |
 |-------|------|------|-----------|------------|
@@ -42,12 +42,13 @@ The other 18 final runs had no errors that I found.
 | Category | What was shown |
 |----------|----------------|
 | Static | `tests/test_held_out.py` checks the cases and the skill rules; `tests/test_tooling.py` checks the tooling. |
-| SQL logic | `tests/test_sql_fixtures.py` runs the workload, cost and business queries on local Apache Spark against small made-up tables. These six tests ran locally with Java 21 and Apache Spark. CI skips them, because it does not install Spark. |
+| SQL logic | `tests/test_sql_fixtures.py` runs the workload, cost and business queries on local Apache Spark against small made-up tables. These seven tests ran locally with Java 21 and Apache Spark. CI skips them, because it does not install Spark. |
 | Upload and discovery | Each final file matched its hash after upload, and each skill appeared in the `/` and `@` pickers. |
 | Invocation | Every run showed the skill being loaded: "Loaded skill" in Genie One, "Read ... skill" or the skill chip in Genie Code. |
 | Correct response | All 20 final runs met their `must` items. Two workload-radar answers also contained errors outside that list, described above. |
 | SQL generated, not executed | Cost, workload and business answers included SQL marked `not executed`. |
-| SQL executed in the workspace | None. Every prompt said not to run SQL. |
+| SQL executed by Genie | None. Every prompt said not to run SQL. |
+| SQL executed directly | The cost-investigator and workload-radar queries, read-only, against live system tables. See [Live system tables](#live-system-tables). |
 
 ## Failures found and fixed
 
@@ -68,6 +69,45 @@ Each fix was followed by a re-upload and a rerun of both cases for that skill.
 | solution-planner | No source for two of the chosen products | One status row and link per product |
 | solution-planner | 973 words and 10 sources in Genie One | Cite only in the status table; at most five searches |
 | solution-planner | A Unicode arrow (U+2192) inside the ASCII diagram | The check before answering rejects Unicode arrows |
+
+## Live system tables
+
+On 2026-10-22 I ran the cost-investigator and workload-radar queries directly against live system tables in the same workspace, outside Genie, with read-only `SELECT` and `DESCRIBE` statements. The columns matched, the session time zone was UTC, and each grouped result added back up exactly to an independent control total.
+
+The run also showed three gaps, now fixed in all three variants of both skills:
+
+| Gap | Fix |
+|-----|-----|
+| The billing and jobs system tables included other workspaces in the account, so an unfiltered answer covered the whole account. | Both queries filter to one workspace by default. The filter is removed only when the user asks for the whole account. |
+| workload-radar returned one row per job per window, too many to summarize in chat. | It returns at most 20 jobs per window. Window totals come from the unranked runs. |
+| No retry-triggered runs occurred in the window, so the retry count was 0. | A zero count is reported as "no explicit retries observed", not as healthy retries. |
+
+I then ran the fixed queries the same way. The single-workspace cost total matched its control total exactly, and workload-radar returned one ranked list per window for that workspace. The raw results stay private because they show account data.
+
+The fix changed these files after the first Genie runs:
+
+| Skill | Hash in the first runs | Current hash |
+|-------|------------------------|--------------|
+| cost-investigator | `480b1570ff47` | `8524543d4ce3` |
+| workload-radar | `00ab1759915b` | `4377275cd433` |
+
+## Rerun after the scope fix
+
+On 2026-10-22 I uploaded the changed files, checked that each installed copy matched its current hash, and reran both cases for each skill in both products with the same prompts and grading. Each Genie One test chat was removed before the next run of the same skill.
+
+| Skill | Case | Genie One | Genie Code |
+|-------|------|-----------|------------|
+| cost-investigator | held-out | pass | pass |
+| cost-investigator | missing-input | pass | pass |
+| workload-radar | held-out | met checklist, one error | pass |
+| workload-radar | missing-input | pass | pass |
+
+- Every run showed the skill being loaded. Genie One showed no past-conversation step in any of these runs.
+- The new rules appeared as written. All four missing-input answers kept the `:workspace_id` filter and said where to find the ID, and both workload answers kept the top-20 rank in their SQL. None of the held-out answers asked for a workspace when the rows were supplied.
+- The repair-like heuristic was `unavailable (not supplied)` in both workload held-out answers, which fixes the error in the first runs. The Genie Code "outpaces" error did not recur.
+- The Genie One workload held-out answer said cost per second of runtime "roughly halved". It fell by about a third, from 0.046 to 0.031 USD per second.
+- Minor wording, not graded: the Genie Code cost held-out answer says SKU_O "has no cost" in one line while its table marks it `not priced`, and the Genie Code workload missing-input answer refers to "the other four" queries when there are three.
+- No SQL ran: the workspace query history shows no statements from my user during the runs, and the warehouse stayed stopped.
 
 ## Migrated public skills
 
@@ -93,5 +133,5 @@ When you test a skill, read the recall citations before you judge the answer. A 
 
 - One workspace, one cloud and one run per final case. Model output varies between runs, so a pass here does not guarantee every future answer passes. The solution-planner held-out cases came in under the 900-word limit by 45 to 108 words.
 - I graded the runs myself against the written `must` lists. There was no second grader.
-- No SQL ran against real system tables or business tables. The queries were checked only on local Spark fixtures.
+- Genie ran no SQL in any test. The cost and workload queries ran once, directly, against live system tables in one workspace. business-pulse never ran against a real business table.
 - The Cursor and Claude Code versions in `other-runtimes/` were not tested.

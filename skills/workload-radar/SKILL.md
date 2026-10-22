@@ -87,6 +87,7 @@ WITH completed_runs AS (
     MAX(period_end_time) AS completed_at,
     max_by(result_state, period_end_time) AS latest_result_state
   FROM system.lakeflow.job_run_timeline
+  WHERE workspace_id = :workspace_id
   GROUP BY workspace_id, job_id, run_id
   HAVING completed_at >= date_sub(current_date(), 14)
      AND completed_at < current_date()
@@ -122,22 +123,38 @@ runs AS (
     GREATEST(COUNT_IF(result_state IS NOT NULL) - 1, 0) AS repair_like_attempts
   FROM run_slices
   GROUP BY completed_at, workspace_id, job_id, run_id
+),
+job_summary AS (
+  SELECT
+    period,
+    workspace_id,
+    job_id,
+    COUNT(*) AS run_count,
+    median(duration_seconds) AS median_duration_seconds,
+    percentile_approx(duration_seconds, 0.95) AS p95_duration_seconds,
+    COUNT_IF(
+      result_state IN ('FAILED', 'TIMED_OUT', 'CANCELLED', 'ERROR')
+    ) AS non_success_count,
+    COUNT_IF(trigger_type = 'ONETIME_RETRY') AS explicit_retry_runs,
+    SUM(repair_like_attempts) AS repair_like_attempts_heuristic
+  FROM runs
+  GROUP BY period, workspace_id, job_id
 )
-SELECT
-  period,
-  workspace_id,
-  job_id,
-  COUNT(*) AS run_count,
-  median(duration_seconds) AS median_duration_seconds,
-  percentile_approx(duration_seconds, 0.95) AS p95_duration_seconds,
-  COUNT_IF(
-    result_state IN ('FAILED', 'TIMED_OUT', 'CANCELLED', 'ERROR')
-  ) AS non_success_count,
-  COUNT_IF(trigger_type = 'ONETIME_RETRY') AS explicit_retry_runs,
-  SUM(repair_like_attempts) AS repair_like_attempts_heuristic
-FROM runs
-GROUP BY period, workspace_id, job_id
+SELECT *
+FROM (
+  SELECT
+    *,
+    row_number() OVER (
+      PARTITION BY period
+      ORDER BY non_success_count DESC, run_count DESC, job_id
+    ) AS job_rank
+  FROM job_summary
+)
+WHERE job_rank <= 20
+ORDER BY period, job_rank
 ```
+
+The jobs system tables can include other workspaces in the account, so the query filters to one workspace by default. Set `:workspace_id` to the workspace the user means; it usually appears after `o=` in the workspace URL. If you do not know it, ask. Remove the filter only when the user asks for the whole account. The query returns at most 20 jobs per window, ranked by non-successful runs and then run count. Compute window totals from `runs` without the rank filter and reconcile them before you summarize. If `explicit_retry_runs` is 0 in both windows, write `no explicit retries observed`; do not describe retries as healthy.
 
 `completed_at` assigns a completed run to one window. Summed slice durations exclude gaps between repaired attempts, and `max_by` preserves the last non-null result state. Confirm that the SQL session time zone is UTC before using these date boundaries.
 

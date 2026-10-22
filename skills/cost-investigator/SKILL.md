@@ -77,6 +77,7 @@ WITH scoped_usage AS (
   FROM system.billing.usage
   WHERE usage_date >= :start_date
     AND usage_date < :end_date
+    AND workspace_id = :workspace_id
 ),
 priced AS (
   SELECT
@@ -104,6 +105,8 @@ FROM priced
 GROUP BY sku_name, currency_code
 ORDER BY estimated_list_cost DESC NULLS LAST
 ```
+
+Billing system tables hold every workspace in the account, so this pattern filters to one workspace by default. Set `:workspace_id` to the workspace the user means; it usually appears after `o=` in the workspace URL. If you do not know it, ask. Remove the filter only when the user asks for the whole account, and label the scope `account-wide`.
 
 For reconciliation, first compute one ungrouped control total, then prove that grouped totals return to the same scope. Check boundaries, timezone, filters, correction handling, currency, late arrival, and price validity before proposing another cause.
 
