@@ -1,6 +1,6 @@
 # Genie skill migration
 
-This repository moves public agent skills into Databricks Genie and adds five custom Genie skills. It goes with the article "How to move a public agent skill into Databricks Genie, and build your own".
+This repository moves public agent skills into Databricks Genie and adds five custom Genie skills. It goes with the article "Databricks Genie Skills: Reuse Public Skills and Create Your Own".
 
 A skill is a folder with a `SKILL.md` file. Genie One loads it when you type `/skill-name`, and Genie Code loads it when you type `@skill-name`.
 
