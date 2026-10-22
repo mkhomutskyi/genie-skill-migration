@@ -184,6 +184,8 @@ The expected total moves from `180` to `220`, up `40` or `22.2%`. North contribu
 - For supplied rows or the sample, label freshness `not applicable` even when a dimension appears in one period only.
 - Use no rank-change words between dimension values, such as "overtook", "passed", or "became the second largest"; report deltas and shares instead.
 - Check every other comparison between dimensions or periods against the displayed numbers for both periods.
+- Make no claim that a change is normal, typical, or noise unless you queried and displayed a baseline of more periods.
+- When gains and losses nearly offset, say which side is larger and show both totals.
 - Name the top positive and negative dimensional contributors.
 - Mark explanations as hypotheses unless directly evidenced.
 - Include SQL actually used, or SQL to run with `not executed`.

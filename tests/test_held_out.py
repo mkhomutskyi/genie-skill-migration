@@ -246,6 +246,12 @@ def test_business_pulse_checks_brief_length_gate_label_and_comparisons() -> None
         assert '"overtook", "passed", or "became the second largest"' in text
 
 
+def test_business_pulse_needs_a_baseline_for_noise_and_names_the_larger_side() -> None:
+    for text in skill_texts("business-pulse"):
+        assert "normal, typical, or noise unless you queried and displayed a baseline" in text
+        assert "say which side is larger and show both totals" in text
+
+
 def test_status_labels_include_private_preview_and_experimental() -> None:
     for skill_name in ("technical-answer", "solution-planner"):
         for text in skill_texts(skill_name):
@@ -262,6 +268,12 @@ def test_status_labels_do_not_treat_a_missing_label_as_ga() -> None:
 def test_workload_radar_keeps_hedged_explanations_out_of_observations() -> None:
     for text in skill_texts("workload-radar"):
         assert '"possibly", "may", "likely", "because", or "suggests"' in text
+
+
+def test_workload_radar_checks_table_freshness_before_calling_job_data_late() -> None:
+    for text in skill_texts("workload-radar"):
+        assert "compare it with the newest record in the whole table" in text
+        assert "`no completed runs after <timestamp>`" in text
 
 
 def test_workload_radar_lists_access_by_name_when_not_executed() -> None:

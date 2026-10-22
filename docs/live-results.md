@@ -1,6 +1,6 @@
 # Live results
 
-This page summarizes the live tests of the five custom skills. The raw outputs stay private because they show a real workspace. The Genie tests below use synthetic inputs, and no SQL ran during them. A separate read-only run of two skills' SQL against live system tables is described in [Live system tables](#live-system-tables).
+This page summarizes the live tests of the five custom skills. The raw outputs stay private because they show a real workspace. Most Genie tests below use synthetic inputs, and no SQL ran during them. A separate read-only run of two skills' SQL against live system tables is described in [Live system tables](#live-system-tables), and Genie runs that executed the SQL themselves are in [Live runs with SQL executed](#live-runs-with-sql-executed).
 
 ## Setup
 
@@ -13,7 +13,7 @@ This page summarizes the live tests of the five custom skills. The raw outputs s
 
 ## Final results
 
-Each skill was tested at the hash shown, which is the first 12 characters of the SHA-256 of `skills/<name>/SKILL.md` at the time of the run. cost-investigator and workload-radar changed after these runs (see [Live system tables](#live-system-tables)), and their four cases were rerun on the changed files (see [Rerun after the scope fix](#rerun-after-the-scope-fix)).
+Each skill was tested at the hash shown, which is the first 12 characters of the SHA-256 of `skills/<name>/SKILL.md` at the time of the run. cost-investigator and workload-radar changed after these runs (see [Live system tables](#live-system-tables)), and their four cases were rerun on the changed files (see [Rerun after the scope fix](#rerun-after-the-scope-fix)). workload-radar and business-pulse changed again after the live runs with SQL (see [Live runs with SQL executed](#live-runs-with-sql-executed)).
 
 | Skill | Hash | Case | Genie One | Genie Code |
 |-------|------|------|-----------|------------|
@@ -47,7 +47,7 @@ The other 18 final runs had no errors that I found.
 | Invocation | Every run showed the skill being loaded: "Loaded skill" in Genie One, "Read ... skill" or the skill chip in Genie Code. |
 | Correct response | All 20 final runs met their `must` items. Two workload-radar answers also contained errors outside that list, described above. |
 | SQL generated, not executed | Cost, workload and business answers included SQL marked `not executed`. |
-| SQL executed by Genie | None. Every prompt said not to run SQL. |
+| SQL executed by Genie | None in the synthetic-input tests, where every prompt said not to run SQL. In the live runs, Genie ran read-only SQL on an existing warehouse. See [Live runs with SQL executed](#live-runs-with-sql-executed). |
 | SQL executed directly | The cost-investigator and workload-radar queries, read-only, against live system tables. See [Live system tables](#live-system-tables). |
 
 ## Failures found and fixed
@@ -109,6 +109,44 @@ On 2026-10-22 I uploaded the changed files, checked that each installed copy mat
 - Minor wording, not graded: the Genie Code cost held-out answer says SKU_O "has no cost" in one line while its table marks it `not priced`, and the Genie Code workload missing-input answer refers to "the other four" queries when there are three.
 - No SQL ran: the workspace query history shows no statements from my user during the runs, and the warehouse stayed stopped.
 
+## Live runs with SQL executed
+
+On 2026-10-22 I let Genie run the SQL itself. I uploaded cost-investigator (`8524543d4ce3`), workload-radar (`4377275cd433`) and business-pulse (`305cb5999b9f`), checked each installed copy against its hash, and wrote one prompt per skill that asked for live, read-only queries on the workspace's existing Serverless Starter Warehouse:
+
+- cost-investigator: estimated list-price cost by SKU for one workspace over the last 30 complete UTC days.
+- workload-radar: jobs, queries, SQL warehouses and cost for one workspace, the latest seven complete UTC days against the prior seven.
+- business-pulse: revenue, defined as the sum of `totalPrice`, in the public sample table `samples.bakehouse.sales_transactions`, one week in May 2024 against the week before, by product.
+
+Genie One ran each prompt three times, and I removed the test chat between runs. Genie Code ran each prompt once, in a test notebook attached to the same warehouse, with this added: "Do not start or create any other compute and do not change anything else." Before the runs I built an answer key by running the skills' SQL and independent control totals directly on the same warehouse.
+
+| Skill | Genie One, 3 runs | Genie Code, 1 run |
+|-------|-------------------|-------------------|
+| cost-investigator | all numbers match, no errors | all numbers match, no errors |
+| workload-radar | all numbers match; one run with one unsupported claim | headline numbers match; two errors |
+| business-pulse | all numbers match; one run with one unsupported claim | all numbers match; one false comparison and one missing heading |
+
+- Every run matched the answer key on its headline numbers: the cost total and each SKU; job runs, non-successful runs, retries, queries, warehouse starts and cost in both windows; and total revenue and each product's change. The three Genie One runs of each skill agreed on every number.
+- Genie One, workload-radar: one run said unpriced usage leaves cost "understated by an unknown amount", which the data does not show.
+- Genie One, business-pulse: one run called a 0.6% drop "within normal week-to-week noise" without checking a baseline.
+- Genie Code, workload-radar: one daily query count was 3 higher than the control. It also said as fact that the current week's job data was incomplete. The jobs table was current, and the workspace had simply run no jobs after the first day of the window.
+- Genie Code, business-pulse: it said the declines "almost entirely cancelled out" the gains, but the declines (1,695) were larger than the gains (1,524). It also left out the `Top dimensional contributors` heading.
+- Genie Code saved a memory holding the workspace and warehouse IDs during the workload run, although the prompt said not to change anything. I asked it to delete the memory, and it then listed the memory folder as empty. The next prompt added "do not save memories", and no memory was saved.
+- I checked the other facts the answers cited, such as a daily cost spike, the first day with usage, cost by product, failure codes and the price check on every bakehouse row, against direct queries. All of them matched.
+
+Query history for my user during the runs shows what Genie ran. Every statement was a `SELECT` or `DESCRIBE`, every one finished, and all of them ran on the existing warehouse. Every statement that read the billing, jobs, query history or warehouse events tables filtered on the workspace ID. Genie One used the skill's top-20 job query in all three workload runs.
+
+The raw outputs and the system-table figures stay private because they show account data. The bakehouse figures come from public sample data: revenue fell from 28,434 to 28,263 (-171, -0.6%), Pearly Pies rose by 1,116 and Orchard Oasis fell by 732. After the runs I removed the uploaded skills, the test chats, the Genie Code conversations and the test notebook, and the warehouse auto-stopped.
+
+These runs led to two rule changes, made after the runs and not yet rerun in Genie:
+
+| Skill | Hash in the live runs | Current hash |
+|-------|-----------------------|--------------|
+| workload-radar | `4377275cd433` | `12c8464cf906` |
+| business-pulse | `305cb5999b9f` | `8ccc336eb2c7` |
+
+- workload-radar: before it calls job data late or incomplete, it compares the workspace's newest job record with the newest record in the whole table. If the table is current, it writes `no completed runs after <timestamp>`.
+- business-pulse: no "normal", "typical" or "noise" claim without a displayed baseline. When gains and losses nearly offset, it says which side is larger and shows both totals.
+
 ## Migrated public skills
 
 The migrations were tested on 2026-10-20, first with the unchanged upstream files and then with the Genie copies. Two Genie One cases were rerun on 2026-10-22 after I removed my earlier test chats. The hashes are the first 12 characters of the SHA-256 of the Genie copy's `SKILL.md`, as pinned in `migrations/PROVENANCE.json`.
@@ -133,5 +171,6 @@ When you test a skill, read the recall citations before you judge the answer. A 
 
 - One workspace, one cloud and one run per final case. Model output varies between runs, so a pass here does not guarantee every future answer passes. The solution-planner held-out cases came in under the 900-word limit by 45 to 108 words.
 - I graded the runs myself against the written `must` lists. There was no second grader.
-- Genie ran no SQL in any test. The cost and workload queries ran once, directly, against live system tables in one workspace. business-pulse never ran against a real business table.
+- Genie ran SQL in one round only: one prompt per skill for three skills, three runs in Genie One and one in Genie Code. business-pulse ran on public sample data, not on a real business table. technical-answer and solution-planner run no SQL.
+- The current workload-radar and business-pulse files add the rules found in the live runs and were not rerun in Genie.
 - The Cursor and Claude Code versions in `other-runtimes/` were not tested.

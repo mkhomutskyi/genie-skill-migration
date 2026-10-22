@@ -93,6 +93,7 @@ Compare the answer with the `must` list for that case in `evals/held_out.json`. 
 | Genie Code answers for the workspace's cloud | The current technical-answer and solution-planner skills ask for the cloud. If you edit them, keep the rule that the cloud must come from the user's message. |
 | The SQL needs access you do not have | The guide lists the privileges. The skill returns SQL marked `not executed` that you can hand to an admin. |
 | You want a dry run | Add "Do not run SQL" to the prompt. Without it, cost-investigator, workload-radar and business-pulse run live read-only queries when you have access, which may start an auto-stopped SQL warehouse. |
+| Genie Code saved a memory during a test | Genie Code can save memories on its own, for example the workspace and warehouse IDs, even when the prompt says not to change anything. Add "Do not save memories" to test prompts, and ask Genie Code to list and delete any memories it saved afterwards. |
 
 ## Remove
 

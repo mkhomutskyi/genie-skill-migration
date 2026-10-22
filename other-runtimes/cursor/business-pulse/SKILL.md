@@ -187,7 +187,7 @@ Return exactly:
 
 The executive brief must be at most five bullets. Each claim must map to a displayed metric or quality check.
 
-Before you answer, check that the brief has five bullets or fewer, that supplied rows or the sample are labeled `not applicable` for freshness, that there are no rank-change words between dimension values, such as "overtook", "passed", or "became the second largest", and that every other comparison between dimensions or periods matches the displayed numbers for both periods.
+Before you answer, check that the brief has five bullets or fewer, that supplied rows or the sample are labeled `not applicable` for freshness, that there are no rank-change words between dimension values, such as "overtook", "passed", or "became the second largest", and that every other comparison between dimensions or periods matches the displayed numbers for both periods. Make no claim that a change is normal, typical, or noise unless you queried and displayed a baseline of more periods. When gains and losses nearly offset, say which side is larger and show both totals.
 
 ## Exact example prompts
 

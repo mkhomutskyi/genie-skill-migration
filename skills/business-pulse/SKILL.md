@@ -169,6 +169,8 @@ Before you answer, check:
 - The gate label follows the rule above.
 - No rank-change words between dimension values, such as "overtook", "passed", or "became the second largest". Report each value's delta and, if useful, its share of the total in both periods.
 - Every other comparison between dimensions or periods matches the displayed numbers for both periods.
+- No claim that a change is normal, typical, or noise unless you queried and displayed a baseline of more periods.
+- When gains and losses nearly offset, say which side is larger and show both totals.
 
 ## Exact example prompts
 
