@@ -1,0 +1,144 @@
+diff -ruN -x LICENSE migrations/write-query/upstream/write-query/SKILL.md migrations/write-query/genie/write-query/SKILL.md
+--- migrations/write-query/upstream/write-query/SKILL.md	2026-10-20 06:07:11
++++ migrations/write-query/genie/write-query/SKILL.md	2026-10-20 06:56:19
+@@ -1,19 +1,19 @@
+ ---
+ name: write-query
+ description: Write optimized SQL for your dialect with best practices. Use when translating a natural-language data need into SQL, building a multi-CTE query with joins and aggregations, optimizing a query against a large partitioned table, or getting dialect-specific syntax for Snowflake, BigQuery, Postgres, etc.
+-argument-hint: "<description of what data you need>"
+ ---
+ 
++<!-- Modified for Databricks Genie by Maks Khomutskyi on 2026-10-20 from anthropics/knowledge-work-plugins data/skills/write-query at commit a266ab8. The changes are listed in the repository file migrations/write-query/CHANGES.md. -->
++
+ # /write-query - Write Optimized SQL
+ 
+-> If you see unfamiliar placeholders or need to check which tools are connected, see [CONNECTORS.md](../../CONNECTORS.md).
+-
+ Write a SQL query from a natural language description, optimized for your specific SQL dialect and following best practices.
+ 
+ ## Usage
+ 
+ ```
+-/write-query <description of what data you need>
++/write-query <description of what data you need>     (Genie One)
++@write-query <description of what data you need>     (Genie Code)
+ ```
+ 
+ ## Workflow
+@@ -31,30 +31,19 @@
+ 
+ ### 2. Determine SQL Dialect
+ 
+-If the user's SQL dialect is not already known, ask which they use:
++Default to **Databricks SQL**. Use another dialect only when the user asks for one, for example to translate a query for another system.
+ 
+-- **PostgreSQL** (including Aurora, RDS, Supabase, Neon)
+-- **Snowflake**
+-- **BigQuery** (Google Cloud)
+-- **Redshift** (Amazon)
+-- **Databricks SQL**
+-- **MySQL** (including Aurora MySQL, PlanetScale)
+-- **SQL Server** (Microsoft)
+-- **DuckDB**
+-- **SQLite**
+-- **Other** (ask for specifics)
++### 3. Discover Schema (Unity Catalog)
+ 
+-Remember the dialect for future queries in the same session.
++Use the Unity Catalog metadata available to you in Genie, and only tables the user can access:
+ 
+-### 3. Discover Schema (If Warehouse Connected)
+-
+-If a data warehouse MCP server is connected:
+-
+ 1. Search for relevant tables based on the user's description
+ 2. Inspect column names, types, and relationships
+ 3. Check for partitioning or clustering keys that affect performance
+ 4. Look for pre-built views or materialized views that might simplify the query
+ 
++If the user did not name a table, show the candidate tables you found, or say that you found none, and ask which one to use before writing the query. Do not pick a table for the user and do not invent table names.
++
+ ### 4. Write the Query
+ 
+ Follow these best practices:
+@@ -80,7 +69,7 @@
+ - Put each major clause on its own line
+ 
+ **Dialect-specific optimizations:**
+-- Apply dialect-specific syntax and functions (see `sql-queries` skill for details)
++- Apply dialect-specific syntax and functions (see `references/databricks-sql.md`)
+ - Use dialect-appropriate date functions, string functions, and window syntax
+ - Note any dialect-specific performance features (e.g., Snowflake clustering, BigQuery partitioning)
+ 
+@@ -95,7 +84,7 @@
+ 
+ ### 6. Offer to Execute
+ 
+-If a data warehouse is connected, offer to run the query and analyze the results. If the user wants to run it themselves, the query is ready to copy-paste.
++Do not run the query unless the user asks. Before running it, say that it uses a SQL warehouse the user can already use and that it may start an auto-stopped warehouse. Run only read-only `SELECT` queries. If the user wants to run it themselves, the query is ready to copy-paste.
+ 
+ ## Examples
+ 
+@@ -116,7 +105,7 @@
+ 
+ ## Tips
+ 
+-- Mention your SQL dialect upfront to get the right syntax immediately
+-- If you know the table names, include them -- otherwise Claude will help you find them
++- Mention another SQL dialect upfront if you need one; the default is Databricks SQL
++- If you know the table names, include them -- otherwise Genie will look for them in Unity Catalog
+ - Specify if you need the query to be idempotent (safe to re-run) or one-time
+ - For recurring queries, mention if it should be parameterized for date ranges
+diff -ruN -x LICENSE migrations/write-query/upstream/write-query/references/databricks-sql.md migrations/write-query/genie/write-query/references/databricks-sql.md
+--- migrations/write-query/upstream/write-query/references/databricks-sql.md	1969-12-31 19:00:00
++++ migrations/write-query/genie/write-query/references/databricks-sql.md	2026-10-20 06:09:04
+@@ -0,0 +1,49 @@
++<!--
++Source: anthropics/knowledge-work-plugins, data/skills/sql-queries/SKILL.md, lines 234-276,
++commit a266ab8c3c754a3ccf7a634044fc1595fc06e50e. Apache-2.0, see ../LICENSE.
++Copied without changes. It lists write and maintenance commands; write-query only writes SELECT queries unless the user asks otherwise.
++-->
++
++### Databricks SQL
++
++**Date/time:**
++```sql
++-- Current date/time
++CURRENT_DATE(), CURRENT_TIMESTAMP()
++
++-- Date arithmetic
++DATE_ADD(date_column, 7)
++DATEDIFF(end_date, start_date)
++ADD_MONTHS(date_column, 1)
++
++-- Truncate to period
++DATE_TRUNC('MONTH', created_at)
++TRUNC(date_column, 'MM')
++
++-- Extract parts
++YEAR(created_at), MONTH(created_at)
++DAYOFWEEK(created_at)
++```
++
++**Delta Lake features:**
++```sql
++-- Time travel
++SELECT * FROM my_table TIMESTAMP AS OF '2024-01-15'
++SELECT * FROM my_table VERSION AS OF 42
++
++-- Describe history
++DESCRIBE HISTORY my_table
++
++-- Merge (upsert)
++MERGE INTO target USING source
++ON target.id = source.id
++WHEN MATCHED THEN UPDATE SET *
++WHEN NOT MATCHED THEN INSERT *
++```
++
++**Performance tips:**
++- Use Delta Lake's `OPTIMIZE` and `ZORDER` for query performance
++- Leverage Photon engine for compute-intensive queries
++- Use `CACHE TABLE` for frequently accessed datasets
++- Partition by low-cardinality date columns
++

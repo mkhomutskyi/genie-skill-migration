@@ -1,0 +1,39 @@
+diff -ruN -x LICENSE migrations/security-threat-model/upstream/security-threat-model/SKILL.md migrations/security-threat-model/genie/security-threat-model/SKILL.md
+--- migrations/security-threat-model/upstream/security-threat-model/SKILL.md	2026-10-20 06:07:19
++++ migrations/security-threat-model/genie/security-threat-model/SKILL.md	2026-10-20 06:17:59
+@@ -3,6 +3,8 @@
+ description: "Repository-grounded threat modeling that enumerates trust boundaries, assets, attacker capabilities, abuse paths, and mitigations, and writes a concise Markdown threat model. Trigger only when the user explicitly asks to threat model a codebase or path, enumerate threats/abuse paths, or perform AppSec threat modeling. Do not trigger for general architecture summaries, code review, or non-security design work."
+ ---
+ 
++<!-- Modified for Databricks Genie by Maks Khomutskyi on 2026-10-20 from openai/skills skills/.curated/security-threat-model at commit 49f948f. The changes are listed in the repository file migrations/security-threat-model/CHANGES.md. -->
++
+ # Threat Model Source Code Repo
+ 
+ Deliver an actionable AppSec-grade threat model that is specific to the repository or a project path, not a generic checklist. Anchor every architectural claim to evidence in the repo and keep assumptions explicit. Prioritizing realistic attacker goals and concrete impacts over generic checklists.
+@@ -10,7 +12,8 @@
+ ## Quick start
+ 
+ 1) Collect (or infer) inputs:
+-- Repo root path and any in-scope paths.
++- The workspace folder or Git folder that holds the code, and any in-scope paths inside it.
++- If you cannot read those files in this environment, ask the user to paste a repository summary or the relevant files. Label the threat model as based on supplied content, not on the repository.
+ - Intended usage, deployment model, internet exposure, and auth expectations (if known).
+ - Any existing repository summary or architecture spec.
+ - Use prompts in `references/prompt-template.md` to generate a repository summary.
+@@ -65,7 +68,7 @@
+ - Confirm user clarifications (or explicit non-responses) are reflected.
+ - Confirm assumptions and open questions are explicit.
+ - Confirm that the format of the report matches closely the required output format defined in prompt template: `references/prompt-template.md`
+-- Write the final Markdown to a file named `<repo-or-dir-name>-threat-model.md` (use the basename of the repo root, or the in-scope directory if you were asked to model a subpath).
++- Return the final Markdown in chat. Write it to a workspace file only when the user asks and gives the path. Suggest the name `<repo-or-dir-name>-threat-model.md`. Never overwrite an existing file.
+ 
+ 
+ ## Risk prioritization guidance (illustrative, not exhaustive)
+diff -ruN -x LICENSE migrations/security-threat-model/upstream/security-threat-model/agents/openai.yaml migrations/security-threat-model/genie/security-threat-model/agents/openai.yaml
+--- migrations/security-threat-model/upstream/security-threat-model/agents/openai.yaml	2026-10-20 06:07:19
++++ migrations/security-threat-model/genie/security-threat-model/agents/openai.yaml	1969-12-31 19:00:00
+@@ -1,4 +0,0 @@
+-interface:
+-  display_name: "Security Threat Model"
+-  short_description: "Repo-grounded threat modeling and abuse-path analysis"
+-  default_prompt: "Create a repository-grounded threat model for this codebase with prioritized abuse paths and mitigations."

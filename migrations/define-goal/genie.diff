@@ -1,0 +1,68 @@
+diff -ruN -x LICENSE migrations/define-goal/upstream/define-goal/SKILL.md migrations/define-goal/genie/define-goal/SKILL.md
+--- migrations/define-goal/upstream/define-goal/SKILL.md	2026-10-20 06:07:18
++++ migrations/define-goal/genie/define-goal/SKILL.md	2026-10-20 06:10:23
+@@ -1,20 +1,22 @@
+ ---
+ name: define-goal
+-description: Help the user define a concrete, measurable goal before starting work, especially when they ask to use the goal tool, create a goal, set an objective, clarify success criteria, or turn a fuzzy intention into a quantitative outcome. Use this skill for goal creation and goal refinement only; it does not manage durable snapshots, decision logs, or long-running execution artifacts.
++description: Help the user define a concrete, measurable goal before starting work, especially when they ask to create a goal, set an objective, clarify success criteria, or turn a fuzzy intention into a quantitative outcome. Use this skill for goal creation and goal refinement only; it does not manage durable snapshots, decision logs, or long-running execution artifacts.
+ ---
+ 
++<!-- Modified for Databricks Genie by Maks Khomutskyi on 2026-10-20 from openai/skills skills/.curated/define-goal at commit 49f948f. The changes are listed in the repository file migrations/define-goal/CHANGES.md. -->
++
+ # Define Goal
+ 
+ ## Overview
+ 
+ Shape the user's intent into an objective an agent can pursue honestly. Prefer measurable outcomes, explicit evidence, and bounded scope over activity descriptions.
+ 
+-This skill covers goal definition and goal-tool creation only. Do not create intermediate planning artifacts, durable snapshots, ledgers, decision logs, or resume files from this skill.
++This skill covers goal definition only. There is no goal tool in this environment: the result is a goal written in chat. Do not create intermediate planning artifacts, durable snapshots, ledgers, decision logs, or resume files from this skill.
+ 
+ ## Workflow
+ 
+ 1. Confirm that goal definition is actually needed.
+-   - Use this skill when the user asks for `$define-goal`, asks to create or set a goal, asks for the goal tool, or wants help turning an intention into a clear objective.
++   - Use this skill when the user asks for `/define-goal` (Genie One) or `@define-goal` (Genie Code), asks to create or set a goal, or wants help turning an intention into a clear objective.
+    - If the user only asks for ordinary implementation work, do the work directly instead of forcing goal creation.
+ 
+ 2. Restate the likely goal in concrete terms.
+@@ -38,22 +40,20 @@
+    - Ask one concise clarification question when the missing detail changes the intended outcome or validation.
+    - Reject pure activity goals such as "make progress," "keep investigating," "improve things," or "work on X" unless they are sharpened into a verifiable outcome.
+ 
+-5. Check active goal state before creating a goal.
+-   - Call `get_goal`.
+-   - If there is no active goal and the objective meets the quality bar, call `create_goal`.
+-   - If there is an active goal that still matches the user's intent, continue using it instead of creating a duplicate.
+-   - If there is an active goal that conflicts with the new request, ask whether to finish the current goal, mark it complete if done, or start a separate goal-backed thread.
++5. Check for an earlier goal in this conversation.
++   - If the user already agreed a goal in this chat and it still matches, refine it instead of writing a duplicate.
++   - If it conflicts with the new request, ask whether to replace it or keep both.
+ 
+-6. Create the goal only after it passes the quality bar.
+-   - Use a single concise objective string.
++6. Present the goal only after it passes the quality bar.
++   - Write a single concise objective under the heading `Goal`.
+    - Include the verification evidence in the objective itself.
+    - Include scope bounds when they constrain the work.
+-   - Include a token budget only when the user explicitly requested one.
+-   - Do not call `create_goal` for an ordinary multi-step task unless the user explicitly asked for goal-backed work.
++   - Ask the user to confirm or edit it.
++   - Never say that a goal was created, saved or tracked. It exists only as text in this chat.
+ 
+ ## Goal Quality Bar
+ 
+-Before `create_goal`, the objective should answer:
++Before presenting the goal, the objective should answer:
+ 
+ - What concrete thing will be true when this is done?
+ - What evidence will prove it?
+diff -ruN -x LICENSE migrations/define-goal/upstream/define-goal/agents/openai.yaml migrations/define-goal/genie/define-goal/agents/openai.yaml
+--- migrations/define-goal/upstream/define-goal/agents/openai.yaml	2026-10-20 06:07:18
++++ migrations/define-goal/genie/define-goal/agents/openai.yaml	1969-12-31 19:00:00
+@@ -1,4 +0,0 @@
+-interface:
+-  display_name: "Define Goal"
+-  short_description: "Shape clear measurable goals"
+-  default_prompt: "Use $define-goal to turn this intention into a concrete, measurable goal before starting work."

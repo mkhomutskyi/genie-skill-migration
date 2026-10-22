@@ -1,0 +1,16 @@
+# Skill files, upstream copies and their SHA-256 records must keep LF bytes on every
+# platform, including Windows clones with core.autocrlf=true.
+* text=auto eol=lf
+
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.zip binary

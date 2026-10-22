@@ -1,0 +1,322 @@
+{
+  "about": "Held-out test cases for the five custom Genie skills. Every number a case checks is in the prompt, not in the skill, so a correct answer cannot be copied from the skill text. tests/test_held_out.py recomputes the expected values from the input and checks that they do not appear in any variant of the skill.",
+  "cases": [
+    {
+      "id": "cost-investigator-held-out",
+      "skill": "cost-investigator",
+      "kind": "held-out",
+      "prompt": "/cost-investigator overview Do not run SQL. Use only these rows. Usage on Azure in August 2026: SKU_M ORIGINAL 40 units, SKU_M RETRACTION -40 units, SKU_M RESTATEMENT 32 units, SKU_N ORIGINAL 6 units, SKU_N ORIGINAL 4 units, SKU_O ORIGINAL 5 units. Prices in USD per unit: SKU_M default 0.90 and effective_list 0.75, SKU_N default 2.20 and effective_list 2.20, SKU_O has no price row. Show estimated list-price cost by SKU and the total.",
+      "input": {
+        "usage": [
+          {
+            "sku": "SKU_M",
+            "record_type": "ORIGINAL",
+            "quantity": 40
+          },
+          {
+            "sku": "SKU_M",
+            "record_type": "RETRACTION",
+            "quantity": -40
+          },
+          {
+            "sku": "SKU_M",
+            "record_type": "RESTATEMENT",
+            "quantity": 32
+          },
+          {
+            "sku": "SKU_N",
+            "record_type": "ORIGINAL",
+            "quantity": 6
+          },
+          {
+            "sku": "SKU_N",
+            "record_type": "ORIGINAL",
+            "quantity": 4
+          },
+          {
+            "sku": "SKU_O",
+            "record_type": "ORIGINAL",
+            "quantity": 5
+          }
+        ],
+        "prices": {
+          "SKU_M": {
+            "default": 0.9,
+            "effective_list": 0.75
+          },
+          "SKU_N": {
+            "default": 2.2,
+            "effective_list": 2.2
+          }
+        }
+      },
+      "expected": {
+        "net_units": {
+          "SKU_M": 32,
+          "SKU_N": 10,
+          "SKU_O": 5
+        },
+        "estimated_cost_usd": {
+          "SKU_M": 24.0,
+          "SKU_N": 22.0
+        },
+        "unmatched_skus": [
+          "SKU_O"
+        ],
+        "total_priced_usd": 46.0
+      },
+      "wrong_answers": {
+        "priced_with_default_key_usd": 50.8,
+        "ignored_retraction_usd": 76.0
+      },
+      "must": [
+        "labels the result as from supplied rows, not queried",
+        "prices SKU_M with effective_list, not default",
+        "reports SKU_O as unmatched and does not give it a price or a zero cost",
+        "calls the money estimated list-price cost, not a bill or invoice"
+      ]
+    },
+    {
+      "id": "cost-investigator-missing-input",
+      "skill": "cost-investigator",
+      "kind": "missing-input",
+      "prompt": "/cost-investigator Which SKUs cost the most last quarter? Do not run SQL.",
+      "must": [
+        "returns read-only SQL labeled not executed",
+        "says live data was not queried",
+        "lists the access needed on system.billing.usage and system.billing.list_prices",
+        "uses the last complete calendar quarter and prints its boundaries"
+      ],
+      "must_not_contain": [
+        "SKU_A",
+        "16 USD",
+        "12 USD"
+      ]
+    },
+    {
+      "id": "workload-radar-held-out",
+      "skill": "workload-radar",
+      "kind": "held-out",
+      "prompt": "/workload-radar Do not run SQL. Use only these numbers. Prior window: job_x ran 3 times, taking 300, 420 and 360 seconds; the 420-second run FAILED. Current window: job_x ran 4 times, taking 540, 600, 480 and 510 seconds; the 480-second run TIMED_OUT and the 510-second run was a ONETIME_RETRY. Estimated list-price cost: prior 50 USD, current 65 USD. I have no query or SQL warehouse data.",
+      "input": {
+        "prior": {
+          "durations": [
+            300,
+            420,
+            360
+          ],
+          "states": [
+            "SUCCEEDED",
+            "FAILED",
+            "SUCCEEDED"
+          ],
+          "retries": 0,
+          "cost_usd": 50
+        },
+        "current": {
+          "durations": [
+            540,
+            600,
+            480,
+            510
+          ],
+          "states": [
+            "SUCCEEDED",
+            "SUCCEEDED",
+            "TIMED_OUT",
+            "SUCCEEDED"
+          ],
+          "retries": 1,
+          "cost_usd": 65
+        }
+      },
+      "expected": {
+        "runs": [
+          3,
+          4
+        ],
+        "median_seconds": [
+          360,
+          525
+        ],
+        "non_success": [
+          1,
+          1
+        ],
+        "retries": [
+          0,
+          1
+        ],
+        "cost_usd": [
+          50,
+          65
+        ],
+        "cost_change_pct": 30.0,
+        "unavailable_signals": [
+          "queries",
+          "SQL warehouses"
+        ]
+      },
+      "wrong_answers": {
+        "current_mean_seconds": 532.5
+      },
+      "must": [
+        "labels the result as from supplied rows, not queried",
+        "marks query and SQL warehouse signals unavailable (not supplied) and still reports the other signals",
+        "counts the TIMED_OUT run as a non-success",
+        "keeps observations separate from hypotheses"
+      ]
+    },
+    {
+      "id": "workload-radar-missing-input",
+      "skill": "workload-radar",
+      "kind": "missing-input",
+      "prompt": "/workload-radar Compare my workloads this week against last week. Do not run SQL.",
+      "must": [
+        "prints both windows with exact boundaries",
+        "returns read-only SQL labeled not executed",
+        "marks every signal unavailable (not queried)",
+        "lists the system table access needed"
+      ],
+      "must_not_contain": [
+        "195",
+        "32 USD"
+      ]
+    },
+    {
+      "id": "business-pulse-held-out",
+      "skill": "business-pulse",
+      "kind": "held-out",
+      "prompt": "/business-pulse Do not run SQL. Use only these rows. Metric: weekly orders, summed. Week of 2026-09-28: Lisbon 410, Porto 260, Faro 130. Week of 2026-10-05: Lisbon 380, Porto 300, Faro 175, Braga 35. Compare the two weeks and rank city contributors.",
+      "input": {
+        "prior": {
+          "Lisbon": 410,
+          "Porto": 260,
+          "Faro": 130
+        },
+        "current": {
+          "Lisbon": 380,
+          "Porto": 300,
+          "Faro": 175,
+          "Braga": 35
+        }
+      },
+      "expected": {
+        "prior_total": 800,
+        "current_total": 890,
+        "delta": 90,
+        "delta_pct": 11.25,
+        "contributions_ranked": [
+          [
+            "Faro",
+            45
+          ],
+          [
+            "Porto",
+            40
+          ],
+          [
+            "Braga",
+            35
+          ],
+          [
+            "Lisbon",
+            -30
+          ]
+        ]
+      },
+      "must": [
+        "labels the result as from supplied rows, not queried",
+        "classifies freshness as not applicable",
+        "notes that Braga appears only in the current week",
+        "calls the cities contributors, not causes",
+        "keeps the executive brief to five bullets or fewer"
+      ]
+    },
+    {
+      "id": "business-pulse-missing-input",
+      "skill": "business-pulse",
+      "kind": "missing-input",
+      "prompt": "/business-pulse What changed in revenue? Do not run SQL.",
+      "must": [
+        "asks at most three short questions: the metric definition, the periods, and the table or metric view",
+        "does not present any numbers as results",
+        "does not pick a table for the user"
+      ],
+      "must_not_contain": [
+        "180",
+        "220",
+        "22.2%"
+      ]
+    },
+    {
+      "id": "technical-answer-held-out",
+      "skill": "technical-answer",
+      "kind": "held-out",
+      "prompt": "/technical-answer On AWS, how many folders deep can a Genie One skill go, how many files or folders can one skill have, and can a skill include images? Do not run SQL.",
+      "expected": {
+        "max_folder_depth": 3,
+        "max_entries_per_skill": 50,
+        "allowed_content": "text files only, so no images",
+        "source": "https://docs.databricks.com/aws/en/genie-one/chat"
+      },
+      "must": [
+        "states three folders deep, 50 files or folders, and text files only",
+        "cites the Genie One chat page for AWS",
+        "uses an allowed status label or status not verified, without inferring status",
+        "uses the five output headings"
+      ]
+    },
+    {
+      "id": "technical-answer-missing-input",
+      "skill": "technical-answer",
+      "kind": "missing-input",
+      "prompt": "/technical-answer What networking do I need to set up for private connectivity to serverless compute? Do not run SQL.",
+      "must": [
+        "asks which cloud before researching",
+        "does not give cloud-specific steps before the user answers"
+      ],
+      "must_not_contain": []
+    },
+    {
+      "id": "solution-planner-held-out",
+      "skill": "solution-planner",
+      "kind": "held-out",
+      "prompt": "/solution-planner Source: CSV files that land once a day in a Unity Catalog volume. Destination: governed Delta tables for SQL dashboards. Latency: data ready by 06:00 UTC daily. Scale: 2 GB per day. Changes: append only. Cloud: AWS. Governance: Unity Catalog access control and lineage. Reliability: a failed day can be rerun. Recovery: RPO 24 hours, RTO 4 hours. Observability: alert on a failed or late load. Cost: no always-on compute. Do not run SQL.",
+      "expected": {
+        "selected": [
+          "Unity Catalog",
+          "incremental file ingestion from the volume, such as Auto Loader in a triggered pipeline or a scheduled job",
+          "an existing SQL warehouse"
+        ],
+        "not_selected": [
+          "Lakeflow Connect",
+          "Delta Sharing",
+          "continuous streaming compute"
+        ],
+        "alternatives": 1,
+        "max_words_excluding_diagram": 900
+      },
+      "must": [
+        "selects only components the requirements need",
+        "gives exactly one alternative with a tradeoff",
+        "gives a status label and a source link for each selected product",
+        "draws the diagram with ASCII characters only",
+        "stops the phased plan before implementation"
+      ]
+    },
+    {
+      "id": "solution-planner-missing-input",
+      "skill": "solution-planner",
+      "kind": "missing-input",
+      "prompt": "/solution-planner Plan a pipeline for our sales data. Do not run SQL.",
+      "must": [
+        "asks at most three short questions covering source, destination or latency, and cloud",
+        "does not draft a stack, diagram, or phased plan yet"
+      ],
+      "must_not_contain": [
+        "Phase 0"
+      ]
+    }
+  ]
+}

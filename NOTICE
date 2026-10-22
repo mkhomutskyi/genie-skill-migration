@@ -1,0 +1,33 @@
+Genie skill migration
+Copyright 2026 Maks Khomutskyi
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This repository includes skills from the following projects, each under the
+Apache License, Version 2.0. In each folder under migrations, the upstream
+folder holds the original files unchanged and the genie folder holds the Genie
+copy. Each changed Genie SKILL.md says that it was modified, and CHANGES.md
+and genie.diff list every change. Source commits and file hashes are in
+migrations/PROVENANCE.json.
+
+- write-query, from anthropics/knowledge-work-plugins
+  https://github.com/anthropics/knowledge-work-plugins
+  License: data/LICENSE in that repository, copied to
+  migrations/write-query/genie/write-query/LICENSE and
+  migrations/write-query/context/data_LICENSE.
+  migrations/write-query/genie/write-query/references/databricks-sql.md is the
+  Databricks SQL section of the sql-queries skill in the same repository.
+
+- internal-comms and theme-factory, from anthropics/skills
+  https://github.com/anthropics/skills
+  License: LICENSE.txt in each skill folder.
+
+- define-goal and security-threat-model, from openai/skills
+  https://github.com/openai/skills
+  License: LICENSE.txt in each skill folder.
+
+None of these projects shipped a NOTICE file at the pinned commits.
+
+"Databricks", "Genie", "Claude" and "Cursor" are trademarks of their owners.
+This is a personal project. It is not an official project of Databricks,
+Anthropic, OpenAI or Anysphere.

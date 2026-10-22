@@ -1,0 +1,32 @@
+diff -ruN -x LICENSE migrations/theme-factory/upstream/theme-factory/SKILL.md migrations/theme-factory/genie/theme-factory/SKILL.md
+--- migrations/theme-factory/upstream/theme-factory/SKILL.md	2026-10-20 06:07:14
++++ migrations/theme-factory/genie/theme-factory/SKILL.md	2026-10-20 06:10:23
+@@ -4,7 +4,9 @@
+ license: Complete terms in LICENSE.txt
+ ---
+ 
++<!-- Modified for Databricks Genie by Maks Khomutskyi on 2026-10-20 from anthropics/skills skills/theme-factory at commit dbd4588. The changes are listed in the repository file migrations/theme-factory/CHANGES.md. -->
+ 
++
+ # Theme Factory Skill
+ 
+ This skill provides a curated collection of professional font and color themes themes, each with carefully selected color palettes and font pairings. Once a theme is chosen, it can be applied to any artifact.
+@@ -20,14 +22,14 @@
+ 
+ To apply styling to a slide deck or other artifact:
+ 
+-1. **Show the theme showcase**: Display the `theme-showcase.pdf` file to allow users to see all available themes visually. Do not make any modifications to it; simply show the file for viewing.
++1. **Show the themes**: Read the files in `themes/` and show a table with each theme's name, its mood, its main hex colors and its fonts.
+ 2. **Ask for their choice**: Ask which theme to apply to the deck
+ 3. **Wait for selection**: Get explicit confirmation about the chosen theme
+-4. **Apply the theme**: Once a theme has been chosen, apply the selected theme's colors and fonts to the deck/artifact
++4. **Apply the theme**: Once a theme has been chosen, apply the selected theme's colors and fonts to the artifact you produce, for example HTML, Markdown, chart code or a dashboard color list. If you cannot edit the artifact directly, return the theme values for the user to apply.
+ 
+ ## Themes Available
+ 
+-The following 10 themes are available, each showcased in `theme-showcase.pdf`:
++The following 10 themes are available, each defined in `themes/`:
+ 
+ 1. **Ocean Depths** - Professional and calming maritime theme
+ 2. **Sunset Boulevard** - Warm and vibrant sunset colors
+Binary files migrations/theme-factory/upstream/theme-factory/theme-showcase.pdf and migrations/theme-factory/genie/theme-factory/theme-showcase.pdf differ

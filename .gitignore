@@ -1,0 +1,25 @@
+# Local environments and generated output
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+reports/
+.DS_Store
+Thumbs.db
+
+# Credentials and local agent/editor configuration
+.env
+.env.*
+.databrickscfg
+.cursor/
+.claude/
+.codex/
+.idea/
+.vscode/
+*.pem
+*.key
+.cache/
