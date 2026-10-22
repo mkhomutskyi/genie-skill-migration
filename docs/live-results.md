@@ -13,7 +13,7 @@ This page summarizes the live tests of the five custom skills. The raw outputs s
 
 ## Final results
 
-Each skill was tested at the hash shown, which is the first 12 characters of the SHA-256 of `skills/<name>/SKILL.md` at the time of the run. cost-investigator and workload-radar changed after these runs (see [Live system tables](#live-system-tables)), and their four cases were rerun on the changed files (see [Rerun after the scope fix](#rerun-after-the-scope-fix)). workload-radar and business-pulse changed again after the live runs with SQL (see [Live runs with SQL executed](#live-runs-with-sql-executed)).
+Each skill was tested at the hash shown, which is the first 12 characters of the SHA-256 of `skills/<name>/SKILL.md` at the time of the run. cost-investigator and workload-radar changed after these runs (see [Live system tables](#live-system-tables)), and their four cases were rerun on the changed files (see [Rerun after the scope fix](#rerun-after-the-scope-fix)). workload-radar and business-pulse changed again after the live runs with SQL (see [Live runs with SQL executed](#live-runs-with-sql-executed)), and their live prompts were rerun on the changed files (see [Rerun with the live-run rules](#rerun-with-the-live-run-rules)).
 
 | Skill | Hash | Case | Genie One | Genie Code |
 |-------|------|------|-----------|------------|
@@ -137,7 +137,7 @@ Query history for my user during the runs shows what Genie ran. Every statement 
 
 The raw outputs and the system-table figures stay private because they show account data. The bakehouse figures come from public sample data: revenue fell from 28,434 to 28,263 (-171, -0.6%), Pearly Pies rose by 1,116 and Orchard Oasis fell by 732. After the runs I removed the uploaded skills, the test chats, the Genie Code conversations and the test notebook, and the warehouse auto-stopped.
 
-These runs led to two rule changes, made after the runs and not yet rerun in Genie:
+These runs led to two rule changes, made after the runs and tested in [Rerun with the live-run rules](#rerun-with-the-live-run-rules):
 
 | Skill | Hash in the live runs | Current hash |
 |-------|-----------------------|--------------|
@@ -146,6 +146,27 @@ These runs led to two rule changes, made after the runs and not yet rerun in Gen
 
 - workload-radar: before it calls job data late or incomplete, it compares the workspace's newest job record with the newest record in the whole table. If the table is current, it writes `no completed runs after <timestamp>`.
 - business-pulse: no "normal", "typical" or "noise" claim without a displayed baseline. When gains and losses nearly offset, it says which side is larger and shows both totals.
+
+## Rerun with the live-run rules
+
+Later on 2026-10-22 I uploaded the current workload-radar (`12c8464cf906`) and business-pulse (`8ccc336eb2c7`), checked each installed copy against its hash, and reran the same live prompts: three runs in Genie One and one in Genie Code per skill. Both Genie Code prompts also said "do not save memories". I rebuilt the answer key before the runs, and it matched the first one exactly.
+
+| Skill | Genie One, 3 runs | Genie Code, 1 run |
+|-------|-------------------|-------------------|
+| workload-radar | all numbers match; two runs with one error each | all numbers match, no errors |
+| business-pulse | all numbers match, no errors | all numbers match; one missing heading |
+
+- The two new rules held in all eight runs. Every workload answer compared the workspace's newest job record with the whole table and reported no completed runs after a timestamp, instead of calling the data late. Every business-pulse answer said the losses were larger, showed both totals, and declined to call the change normal without a longer baseline.
+- Genie One, workload-radar: one run said most prior-week job runs belonged to one series of evaluation jobs, but less than a third did.
+- Genie One, workload-radar: one run called the current week's only job "unnamed". The job has a name, in a table that run did not query.
+- Genie Code, business-pulse: it renamed the required headings and again left out `Top dimensional contributors`. It listed the contributors under its summary.
+- One more Genie One workload run stalled after its queries finished. It showed no answer after ten minutes, also after a page reload, so I cancelled it, removed the chat and started again. It is not graded.
+- Genie One used the skill's top-20 job query in two of the three workload runs. The third wrote its own per-job query, filtered to the workspace and capped at 40 rows.
+- Query history again shows only finished `SELECT` statements on the existing warehouse. The only system-table reads without a workspace filter were the new freshness checks, and each returned only the newest timestamp in the whole table. Two answers still said that every query was filtered to the workspace.
+- Genie Code saved no memory this time, and its memory folder was empty afterwards.
+- I checked the other facts the answers cited, such as data read, cache hits, warehouse events by type, costs on idle days and failing jobs, against direct queries. Apart from the errors above, they matched.
+
+Afterwards I removed the uploaded skills, the test chats, the Genie Code conversations and the test notebook.
 
 ## Migrated public skills
 
@@ -171,6 +192,5 @@ When you test a skill, read the recall citations before you judge the answer. A 
 
 - One workspace, one cloud and one run per final case. Model output varies between runs, so a pass here does not guarantee every future answer passes. The solution-planner held-out cases came in under the 900-word limit by 45 to 108 words.
 - I graded the runs myself against the written `must` lists. There was no second grader.
-- Genie ran SQL in one round only: one prompt per skill for three skills, three runs in Genie One and one in Genie Code. business-pulse ran on public sample data, not on a real business table. technical-answer and solution-planner run no SQL.
-- The current workload-radar and business-pulse files add the rules found in the live runs and were not rerun in Genie.
+- Genie ran SQL in two rounds, with one prompt per skill: three skills, then the two that changed, each with three runs in Genie One and one in Genie Code. business-pulse ran on public sample data, not on a real business table. technical-answer and solution-planner run no SQL.
 - The Cursor and Claude Code versions in `other-runtimes/` were not tested.
